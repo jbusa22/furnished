@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphQL Search</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        
+        .mapcontainer {
+            position: sticky;
+            top: 30px;
+            max-width: 500px;
+            max-height: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        
+        .coords-display {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .coords-display h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+        
+        .coords-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #495057;
+            white-space: pre-wrap;
+            min-height: 60px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .drawing-instructions {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 12px;
+            margin: 10px 0;
+            color: #0c5460;
+            font-size: 14px;
+        }
+    </style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        /* Tab Styles */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab:hover {
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        
+        .tab.active {
+            color: #2196F3;
+            border-bottom-color: #2196F3;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        #results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .card.active {
+            border: 1px solid green;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .card-content {
+            padding: 15px;
+        }
+        
+        .card-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .card-url {
+            font-size: 14px;
+            color: #666;
+            word-break: break-all;
+            margin-bottom: 10px;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-favorite {
+            background-color: #ff4757;
+            color: white;
+        }
+        
+        .btn-favorite:hover {
+            background-color: #ff3742;
+        }
+        
+        .btn-seen {
+            background-color: #666;
+            color: white;
+        }
+        
+        .btn-seen:hover {
+            background-color: #555;
+        }
+        
+        .btn-remove {
+            background-color: #ff6b6b;
+            color: white;
+        }
+        
+        .btn-remove:hover {
+            background-color: #ff5252;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #d32f2f;
+        }
+        
+        .no-image {
+            width: 100%;
+            height: 200px;
+            background-color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .seen-overlay {
+            opacity: 0.6;
+        }
+        
+        .favorite-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff4757;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .metacontainer {
+            display: flex;
+            gap: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="metacontainer">
+    
+    <div class="container">
+        <h1>Property Search Results</h1>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <button id="unseen" class="tab active">Unseen Homes</button>
+            <button id="favorites" class="tab">Favorites</button>
+        </div>
+        
+        <!-- Tab Content -->
+        <div id="unseen-content" class="tab-content active">
+            <div id="results">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+        
+        <div id="favorites-content" class="tab-content">
+            <div id="favorites-results">
+                <!-- Favorites will be loaded here -->
+            </div>
+        </div>
+    </div>
+    <div class="mapcontainer">
+        <div class="controls">
+            <button id="drawBtn" class="btn btn-primary">Draw Search Area</button>
+            <button id="clearBtn" class="btn btn-danger" disabled>Clear Area</button>
+            <span id="status" class="status">Click "Draw Search Area" to start</span>
+        </div>
+        
+        <div class="drawing-instructions" id="instructions" style="display: none;">
+            Click and drag on the map to draw a rectangle. The coordinates will be logged to the console and displayed below.
+        </div>
+        
+        <div id="map"></div>
+    </div>
+    </div>
+    <script src="init.js" type="module"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+</body>
