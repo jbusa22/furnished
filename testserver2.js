@@ -262,7 +262,7 @@ const server = http.createServer(async function(req, res) {
         });
     } else {
         // Serve the index.html file for other requests
-        const savedUrl = req.url === "/" ? 'index.html' : req.url.substring(1)
+        const savedUrl = req.url === "/" ? '/frontend/index.html' :`/frontend${req.url}`
         const filePath = path.join(__dirname, savedUrl);
 
         fs.readFile(filePath, (err, data) => {
